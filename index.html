@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Docify — Gestión de Documentos</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Syne:wght@600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <!-- AUTH SCREEN -->
+  <div id="auth-screen">
+    <div class="auth-bg-grid"></div>
+    <div class="auth-card">
+      <div class="auth-logo">
+        <div class="logo-mark"><span class="logo-hex"><img src="logo.png" alt="" width="40px"></span></div>
+        <div>
+          <span class="logo-text">Docify</span>
+          <span class="logo-tagline">Gestión de documentos personal</span>
+        </div>
+      </div>
+      <!-- LOGIN -->
+      <div id="login-form" class="auth-form active">
+        <h2>Bienvenido de vuelta</h2>
+        <p class="auth-subtitle">Accede a tu bóveda de documentos</p>
+        <div class="form-group"><label>Correo electrónico</label><input type="email" id="login-email" placeholder="correo@ejemplo.com" autocomplete="email" /></div>
+        <div class="form-group"><label>Contraseña</label><input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password" /></div>
+        <div id="login-error" class="form-error hidden"></div>
+        <button class="btn-primary btn-full" onclick="handleLogin()"><span>Iniciar sesión</span><span class="btn-arrow">→</span></button>
+        <p class="auth-switch">¿No tienes cuenta? <a href="#" onclick="showRegister(); return false;">Regístrate gratis</a></p>
+      </div>
+      <!-- REGISTER -->
+      <div id="register-form" class="auth-form">
+        <h2>Crear cuenta</h2>
+        <p class="auth-subtitle">Tu espacio privado de documentos</p>
+        <div class="form-group"><label>Nombre completo</label><input type="text" id="reg-name" placeholder="Juan Pérez" /></div>
+        <div class="form-group"><label>Correo electrónico</label><input type="email" id="reg-email" placeholder="correo@ejemplo.com" autocomplete="email" /></div>
+        <div class="form-group"><label>Contraseña</label><input type="password" id="reg-password" placeholder="Mínimo 6 caracteres" autocomplete="new-password" /></div>
+        <div id="reg-error" class="form-error hidden"></div>
+        <button class="btn-primary btn-full" onclick="handleRegister()"><span>Crear mi cuenta</span><span class="btn-arrow">→</span></button>
+        <p class="auth-switch">¿Ya tienes cuenta? <a href="#" onclick="showLogin(); return false;">Inicia sesión</a></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN APP -->
+  <div id="app" class="hidden">
+    <aside class="sidebar">
+      <div class="sidebar-logo"><span class="logo-hex sidebar-hex">⬡</span><span class="logo-text">Docify</span></div>
+      <nav class="sidebar-nav">
+        <p class="nav-section-label">Principal</p>
+        <a href="#" class="nav-item active" data-section="dashboard" onclick="switchSection('dashboard', this); return false;"><span class="nav-icon">⊞</span><span>Dashboard</span></a>
+        <a href="#" class="nav-item" data-section="documents" onclick="switchSection('documents', this); return false;"><span class="nav-icon">◫</span><span>Documentos</span></a>
+        <a href="#" class="nav-item" data-section="preview" onclick="switchSection('preview', this); return false;"><span class="nav-icon">◻</span><span>Vista de Documento</span></a>
+        <p class="nav-section-label" style="margin-top: 16px;">Alertas</p>
+        <a href="#" class="nav-item" data-section="expiring" onclick="switchSection('expiring', this); return false;"><span class="nav-icon">◷</span><span>Recordatorios</span><span class="nav-badge hidden" id="expiring-badge">0</span></a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-info">
+          <div class="user-avatar" id="user-avatar-sidebar">?</div>
+          <div class="user-details">
+            <span class="user-name" id="user-name-display">Usuario</span>
+            <span class="user-role">Cuenta personal</span>
+          </div>
+        </div>
+        <button class="btn-logout" onclick="logout()" title="Cerrar sesión">⏏</button>
+      </div>
+    </aside>
+    <div class="main-wrapper">
+      <header class="app-header">
+        <div class="header-left">
+          <h1 class="page-title" id="page-title">Dashboard</h1>
+          <span class="page-subtitle" id="page-subtitle">Resumen de tus documentos</span>
+        </div>
+        <div class="header-right">
+          <div class="search-box">
+            <span class="search-icon">⌕</span>
+            <input type="text" id="global-search" placeholder="Buscar documentos..." oninput="handleSearch(this.value)" />
+            <kbd class="search-kbd">⌘K</kbd>
+          </div>
+          <button class="btn-primary" onclick="openDocumentModal()"><span class="btn-plus">+</span> Nuevo documento</button>
+        </div>
+      </header>
+      <div id="alerts-banner" class="alerts-banner hidden"></div>
+      <main class="main-content">
+        <!-- DASHBOARD -->
+        <section id="section-dashboard" class="section active">
+          <div class="stats-grid">
+            <div class="stat-card stat-total"><div class="stat-icon-wrap"><span class="stat-icon-glyph">◫</span></div><div class="stat-info"><div class="stat-value" id="stat-total">0</div><div class="stat-label">Total documentos</div></div></div>
+            <div class="stat-card stat-current"><div class="stat-icon-wrap accent"><span class="stat-icon-glyph">✓</span></div><div class="stat-info"><div class="stat-value accent" id="stat-current">0</div><div class="stat-label">Vigentes</div></div></div>
+            <div class="stat-card stat-expiring"><div class="stat-icon-wrap warning"><span class="stat-icon-glyph">◷</span></div><div class="stat-info"><div class="stat-value warning" id="stat-expiring">0</div><div class="stat-label">Por vencer</div></div></div>
+            <div class="stat-card stat-expired"><div class="stat-icon-wrap danger"><span class="stat-icon-glyph">✗</span></div><div class="stat-info"><div class="stat-value danger" id="stat-expired">0</div><div class="stat-label">Vencidos</div></div></div>
+          </div>
+          <div class="dashboard-grid">
+            <div class="card chart-card"><div class="card-header"><div><h3>Distribución por estado</h3><p class="card-desc">Actualización en tiempo real</p></div><div class="live-dot"></div></div><div class="chart-body"><div class="chart-donut-wrap"><canvas id="statusChart" width="160" height="160"></canvas><div class="chart-center-label"><span id="chart-center-num">0</span><span class="chart-center-text">Total</span></div></div><div class="chart-legend"><div class="legend-item"><div class="legend-dot" style="background:#22C55E"></div><span class="legend-label">Vigentes</span><span class="legend-count" id="legend-current">0</span></div><div class="legend-item"><div class="legend-dot" style="background:#F59E0B"></div><span class="legend-label">Por vencer</span><span class="legend-count" id="legend-expiring">0</span></div><div class="legend-item"><div class="legend-dot" style="background:#EF4444"></div><span class="legend-label">Vencidos</span><span class="legend-count" id="legend-expired">0</span></div></div></div></div>
+            <div class="card recent-card"><div class="card-header"><div><h3>Documentos recientes</h3><p class="card-desc">Últimos agregados o modificados</p></div><a href="#" onclick="switchSection('documents', null); return false;" class="card-link">Ver todos →</a></div><div id="recent-documents" class="recent-list"><div class="empty-state small">Sin documentos aún</div></div></div>
+          </div>
+          <div class="card"><div class="card-header"><div><h3>Documentos por categoría</h3><p class="card-desc">Distribución de tu archivo</p></div></div><div id="category-breakdown" class="category-grid"></div></div>
+        </section>
+        <!-- DOCUMENTS -->
+        <section id="section-documents" class="section">
+          <div class="section-toolbar">
+            <div class="filter-group">
+              <div class="select-wrap"><select id="filter-category" onchange="applyFilters()"><option value="">Todas las categorías</option><option>Identidad</option><option>Salud</option><option>Educación</option><option>Financiero</option><option>Legal</option><option>Vehicular</option><option>Laboral</option><option>Otro</option></select></div>
+              <div class="select-wrap"><select id="filter-status" onchange="applyFilters()"><option value="">Todos los estados</option><option value="current">Vigentes</option><option value="expiring">Por vencer</option><option value="expired">Vencidos</option></select></div>
+              <span class="results-count" id="results-count"></span>
+            </div>
+            <div class="view-toggle">
+              <button class="view-btn active" id="btn-view-grid" onclick="setView('grid', this)" title="Cuadrícula">⊞</button>
+              <button class="view-btn" id="btn-view-list" onclick="setView('list', this)" title="Lista">≡</button>
+            </div>
+          </div>
+          <div id="documents-container" class="documents-grid"></div>
+        </section>
+        <!-- PREVIEW -->
+        <section id="section-preview" class="section">
+          <div class="preview-layout">
+            <div class="preview-sidebar-panel">
+              <div class="preview-panel-header"><h3>Seleccionar documento</h3><span id="preview-doc-count" class="preview-count">0 docs</span></div>
+              <div id="preview-doc-list" class="preview-list"></div>
+            </div>
+            <div class="preview-main-panel">
+              <div id="preview-placeholder" class="preview-placeholder"><div class="preview-placeholder-icon">◻</div><h3>Selecciona un documento</h3><p>Elige un documento de la lista de la izquierda para ver su vista previa y todos sus detalles</p></div>
+              <div id="preview-content" class="preview-content hidden">
+                <div class="preview-doc-header">
+                  <div class="preview-doc-title-area"><h2 id="preview-doc-name">—</h2><div class="preview-doc-meta"><span id="preview-doc-category" class="preview-tag">—</span><span id="preview-doc-status" class="preview-status-tag">—</span></div></div>
+                  <div class="preview-doc-actions"><button class="btn-secondary btn-sm" onclick="editDocumentFromPreview()">✎ Editar</button><button class="btn-danger btn-sm" onclick="deleteDocumentFromPreview()">✕ Eliminar</button></div>
+                </div>
+                <div class="preview-doc-details">
+                  <div class="detail-item"><span class="detail-label">Vencimiento</span><span id="preview-doc-expiry" class="detail-value">—</span></div>
+                  <div class="detail-item"><span class="detail-label">Categoría</span><span id="preview-doc-cat-detail" class="detail-value">—</span></div>
+                  <div class="detail-item"><span class="detail-label">Creado</span><span id="preview-doc-created" class="detail-value">—</span></div>
+                  <div class="detail-item detail-item-full"><span class="detail-label">Descripción</span><span id="preview-doc-description" class="detail-value">—</span></div>
+                </div>
+                <div class="preview-viewer">
+                  <div class="viewer-toolbar"><span class="viewer-toolbar-label">Vista previa del archivo</span><a id="preview-download-link" class="btn-secondary btn-sm hidden" download>⬇ Descargar</a></div>
+                  <div id="preview-viewer-content" class="viewer-content"><div class="no-file-state"><span class="no-file-icon">◫</span><p>No hay archivo adjunto</p></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+        <!-- EXPIRING -->
+        <section id="section-expiring" class="section">
+          <div class="alert-section-header"><div class="alert-icon-big">◷</div><div><h2>Centro de Recordatorios</h2><p>Documentos que requieren tu atención</p></div></div>
+          <div class="card mb-4"><div class="card-header"><div><h3>Por vencer <span class="badge-warning" id="count-expiring">0</span></h3><p class="card-desc">Vencen en los próximos 7 días</p></div></div><div id="expiring-list" class="alert-list"></div></div>
+          <div class="card"><div class="card-header"><div><h3>Documentos vencidos <span class="badge-danger" id="count-expired">0</span></h3><p class="card-desc">Requieren renovación inmediata</p></div></div><div id="expired-list" class="alert-list"></div></div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- MODALS -->
+  <div id="document-modal" class="modal-overlay hidden" onclick="modalOverlayClick(event, 'document-modal')">
+    <div class="modal">
+      <div class="modal-header"><h3 id="modal-title">Nuevo Documento</h3><button class="modal-close" onclick="closeDocumentModal()">✕</button></div>
+      <div class="modal-body">
+        <input type="hidden" id="modal-doc-id" />
+        <div class="form-row">
+          <div class="form-group"><label>Nombre del documento <span class="req">*</span></label><input type="text" id="doc-name" placeholder="Ej: INE, Pasaporte, Seguro..." /></div>
+          <div class="form-group"><label>Categoría <span class="req">*</span></label><select id="doc-category"><option value="">Seleccionar...</option><option>Identidad</option><option>Salud</option><option>Educación</option><option>Financiero</option><option>Legal</option><option>Vehicular</option><option>Laboral</option><option>Otro</option></select></div>
+        </div>
+        <div class="form-group"><label>Fecha de vencimiento <span class="req">*</span></label><input type="date" id="doc-expiry" /></div>
+        <div class="form-group"><label>Descripción <span class="optional">(opcional)</span></label><textarea id="doc-description" placeholder="Notas, número de folio, institución emisora..." rows="3"></textarea></div>
+        <div class="form-group">
+          <label>Archivo adjunto <span class="optional">(imagen o PDF, máx 5MB)</span></label>
+          <div class="file-drop-zone" id="file-drop-zone" onclick="document.getElementById('doc-file').click()" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
+            <input type="file" id="doc-file" accept="image/*,.pdf" onchange="handleFileSelect(this)" />
+            <div id="file-placeholder"><span class="upload-glyph">⬆</span><span class="upload-text">Arrastra aquí o haz clic para seleccionar</span><span class="upload-hint">Imágenes (JPG, PNG, GIF) o PDF</span></div>
+            <div id="file-selected-display" class="hidden"><span class="file-glyph">◫</span><span id="selected-file-name-display"></span><button type="button" class="file-clear-btn" onclick="clearFile(event)">✕ Quitar</button></div>
+          </div>
+        </div>
+        <div id="modal-error" class="form-error hidden"></div>
+      </div>
+      <div class="modal-footer"><button class="btn-secondary" onclick="closeDocumentModal()">Cancelar</button><button class="btn-primary" onclick="saveDocument()">Guardar documento</button></div>
+    </div>
+  </div>
+  <div id="delete-modal" class="modal-overlay hidden" onclick="modalOverlayClick(event, 'delete-modal')">
+    <div class="modal modal-sm">
+      <div class="modal-header"><h3>Confirmar eliminación</h3><button class="modal-close" onclick="closeDeleteModal()">✕</button></div>
+      <div class="modal-body"><div class="delete-warning-icon">⚠</div><p>¿Estás seguro de eliminar <strong id="delete-doc-name-display"></strong>?</p><p class="delete-warning-text">Esta acción es permanente y no se puede deshacer.</p></div>
+      <div class="modal-footer"><button class="btn-secondary" onclick="closeDeleteModal()">Cancelar</button><button class="btn-danger" onclick="confirmDelete()">Sí, eliminar</button></div>
+    </div>
+  </div>
+  <div id="toast-container"></div>
+  <!-- Support button -->
+<button id="support-button" onclick="openSupportModal()" title="Soporte">?</button>
+
+<!-- Support modal -->
+<div id="support-modal" class="modal-overlay hidden" onclick="modalOverlayClick(event, 'support-modal')">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <h3>Soporte</h3>
+      <button class="modal-close" onclick="closeSupportModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Correo <span class="req">*</span></label>
+        <input type="email" id="support-email" placeholder="tu@correo.com" />
+      </div>
+      <div class="form-group">
+        <label>Problema <span class="req">*</span></label>
+        <textarea id="support-problem" placeholder="Describe tu problema..." rows="4"></textarea>
+      </div>
+      <div id="support-error" class="form-error hidden"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeSupportModal()">Cancelar</button>
+      <button class="btn-primary" onclick="sendSupport()">Enviar</button>
+    </div>
+  </div>
+</div>
+  <script src="app.js"></script>
+</body>
+</html>
